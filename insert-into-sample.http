@@ -1,0 +1,16 @@
+# curl insert new document to row
+
+POST http://127.0.0.1:8080/index.php
+Content-Type: application/json
+
+{
+    "_method": "insert",
+    "data": {
+        "first_name": "Mohaddese",
+        "last_name": "Qorbani",
+        "age": 2
+    }
+}
+
+###
+
