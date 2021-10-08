@@ -34,7 +34,7 @@ class mongoClass
 	
 	/**
 	 * @param array  $data
-	 * @param string $collection_name
+	 * @param string $collection
 	 *
 	 * @return int
 	 */
@@ -137,9 +137,8 @@ class mongoClass
 	}
 	
 	/**
-	 * @param array  $condition
+	 * @param array  $inputs
 	 * @param string $collection
-	 * @param array  $options
 	 *
 	 * @return array
 	 * @throws \MongoDB\Driver\Exception\Exception
@@ -208,7 +207,7 @@ class mongoClass
 			$result[] = $document;
 		}
 		
-		return (array) $result;
+		return $result;
 	}
 	
 	/**
