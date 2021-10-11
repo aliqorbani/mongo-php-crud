@@ -1,5 +1,7 @@
 <?php
 
+use MongoDB\Client;
+
 class mongoClass
 {
 	//Database configuration
@@ -8,51 +10,29 @@ class mongoClass
 	private $connection;
 	private $db_name;
 	
-	public function __construct()
+	public function __construct($host = 'localhost', $port = '27017', $db_name = 'moortak_db')
 	{
-		$this->setDbHost('localhost');
-		$this->setDbPort('27017');
-		$this->setDbName('moortak_db');
+		$this->setDbHost($host);
+		$this->setDbPort($port);
+		$this->setDbName($db_name);
 		$this->setConnection();
 	}
 	
-	/**
-	 * @return string
-	 */
-	public function getDbHost()
+	public function insertOne($data = [], $collection = '')
 	{
-		return $this->db_host;
-	}
-	
-	/**
-	 * @param string $db_host
-	 */
-	public function setDbHost($db_host)
-	{
-		$this->db_host = $db_host;
-	}
-	
-	/**
-	 * @param array  $data
-	 * @param string $collection
-	 *
-	 * @return int
-	 */
-	public function insert($data = [], $collection = '')
-	{
-		$bulk = new MongoDB\Driver\BulkWrite();
-		$bulk->insert($data);
 		try {
-			return $this->getConnection()->executeBulkWrite(
-				"{$this->getDbName()}.{$collection}", $bulk
-			)->isAcknowledged();
-		} catch ( \MongoDB\Driver\Exception\Exception $exception ) {
-			return $exception->getMessage();
+			$client = $this->getConnection()->selectDatabase($this->db_name)->selectCollection(
+				$collection
+			);
+			
+			return $client->insertOne($data);
+		} catch ( Error $e ) {
+			return $e->getMessage();
 		}
 	}
 	
 	/**
-	 * @return \MongoDB\Driver\Manager
+	 * @return \MongoDB\Client
 	 */
 	public function getConnection()
 	{
@@ -60,16 +40,29 @@ class mongoClass
 	}
 	
 	/**
-	 * @return string
+	 * @return \MongoDB\Client
 	 */
 	public function setConnection()
 	{
+		$host             = $this->getDbHost() . ':' . $this->getDbPort();
+		$this->connection = (new Client("mongodb://{$host}"));
+	}
+	
+	/**
+	 * @param array  $data
+	 * @param string $collection
+	 *
+	 * @return \MongoDB\InsertManyResult|string
+	 */
+	public function insertMany($data = [], $collection = '')
+	{
 		try {
-			//			return (new MongoDB\Client())->selectDatabase($this->getDbName());
-			$host = $this->getDbHost() . ':' . $this->getDbPort();
+			$client = $this->getConnection()->selectDatabase($this->getDbName())->selectCollection(
+				$collection
+			);
 			
-			return $this->connection = new MongoDB\Driver\Manager('mongodb://' . $host);
-		} catch ( MongoDB\Driver\Exception\Exception $e ) {
+			return $client->insertMany($data);
+		} catch ( Error $e ) {
 			return $e->getMessage();
 		}
 	}
@@ -90,63 +83,89 @@ class mongoClass
 		$this->db_name = $db_name;
 	}
 	
-	/**
-	 * @param array  $new_data
-	 * @param array  $condition
-	 * @param string $collection
-	 * @param bool   $multiple
-	 * @param bool   $upsert
-	 *
-	 * @return string
-	 */
-	public function update($new_data = [], $condition = [], $collection = '', $multiple = true, $upsert = false)
+	public function updateOne($data = [], $condition = [], $collection = '')
 	{
-		$bulk = new MongoDB\Driver\BulkWrite();
-		$bulk->update(
-			$condition,
-			[ [ '$set' => $new_data, ] ],
-			[ 'multiple' => $multiple, 'upsert' => $upsert ]
-		);
 		try {
-			return $this->getConnection()->executeBulkWrite(
-				"{$this->getDbName()}.{$collection}", $bulk
+			$client = $this->getConnection()->selectDatabase($this->getDbName())->selectCollection(
+				$collection
 			);
-		} catch ( \MongoDB\Driver\Exception\Exception $exception ) {
-			return $exception->getMessage();
+			
+			return $client->updateOne($condition, [ '$set' => $data ]);
+		} catch ( Error $e ) {
+			return $e->getMessage();
 		}
 	}
 	
-	/**
-	 * @param array  $condition
-	 * @param string $collection
-	 * @param int    $limit
-	 *
-	 * @return string
-	 */
-	public function delete($condition = [], $collection = '', $limit = 1)
+	public function updateMany($data = [], $condition = [], $collection = '')
 	{
-		$bulk = new MongoDB\Driver\BulkWrite();
-		$bulk->delete($condition, [ 'limit' => (int) $limit ]);
 		try {
-			return $this->getConnection()->executeBulkWrite(
-				"{$this->getDbName()}.{$collection}", $bulk
+			$client = $this->getConnection()->selectDatabase($this->getDbName())->selectCollection(
+				$collection
 			);
-		} catch ( \MongoDB\Driver\Exception\Exception $exception ) {
-			return $exception->getMessage();
+			
+			return $client->updateMany($condition, [ '$set' => $data ]);
+		} catch ( Error $e ) {
+			return $e->getMessage();
 		}
 	}
 	
-	/**
-	 * @param array  $inputs
-	 * @param string $collection
-	 *
-	 * @return array
-	 * @throws \MongoDB\Driver\Exception\Exception
-	 */
-	public function read($inputs = [], $collection = '')
+	public function updateOrCreate($data = [], $condition = [], $collection = '')
 	{
-		$filters           = isset($inputs[ 'filters' ]) ? $inputs[ 'filters' ] : [];
-		$sort              = isset($inputs[ 'sort' ]) ? $inputs[ 'sort' ] : [];
+		try {
+			$client = $this->getConnection()->selectDatabase($this->getDbName())->selectCollection(
+				$collection
+			);
+			
+			return $client->updateOne($condition, [ '$set' => $data ], [ 'upsert' => true ]);
+		} catch ( Error $e ) {
+			return $e->getMessage();
+		}
+	}
+	
+	public function replaceOne($data = [], $condition = [], $collection = '')
+	{
+		try {
+			$client = $this->getConnection()->selectDatabase($this->getDbName())->selectCollection(
+				$collection
+			);
+			
+			return $client->replaceOne($condition, [ '$set' => $data ]);
+		} catch ( Error $e ) {
+			return $e->getMessage();
+		}
+	}
+	
+	public function deleteOne($condition = [], $collection = '')
+	{
+		try {
+			$client = $this->getConnection()->selectDatabase($this->getDbName())->selectCollection(
+				$collection
+			);
+			
+			return $client->deleteOne($condition);
+		} catch ( Error $e ) {
+			return $e->getMessage();
+		}
+	}
+	
+	public function deleteMany($condition = [], $collection = '')
+	{
+		try {
+			$client = $this->getConnection()->selectDatabase($this->getDbName())->selectCollection(
+				$collection
+			);
+			
+			return $client->deleteMany($condition);
+		} catch ( Error $e ) {
+			return $e->getMessage();
+		}
+	}
+	
+	public function read($inputs = [], $collection = '', $single = false)
+	{
+		$filters           = $inputs[ 'filters' ] ?? [];
+		$sort              = $inputs[ 'sort' ] ?? [];
+		$limit             = $inputs[ 'limit' ] ?? 100;
 		$collection_filter = [];
 		if ( isset($filters) ){
 			foreach ( $filters as $filter ) {
@@ -197,14 +216,15 @@ class mongoClass
 			$options[ 'sort' ][ $option[ 'field' ] ] = (int) $value;
 		}
 		$options[ 'projection' ] = [ '_id' => 0 ];
+		$options[ 'limit' ]      = $limit;
 		//		return $options;
 		//		return $collection_filter;
-		$read    = new MongoDB\Driver\Query($collection_filter, $options);
-		$execute = "{$this->getDbName()}.{$collection}";
-		$cursor  = $this->getConnection()->executeQuery($execute, $read);
-		$result  = [];
-		foreach ( $cursor as $document ) {
-			$result[] = $document;
+		$client = $this->getConnection()->selectDatabase($this->getDbName())->selectCollection(
+			$collection
+		);
+		$result = $client->find($collection_filter, $options)->toArray();
+		if ( $single ){
+			$result = $client->findOne($collection_filter, $options);
 		}
 		
 		return $result;
@@ -224,6 +244,22 @@ class mongoClass
 	public function setDbPort($db_port)
 	{
 		$this->db_port = $db_port;
+	}
+	
+	/**
+	 * @return string
+	 */
+	protected function getDbHost()
+	{
+		return $this->db_host;
+	}
+	
+	/**
+	 * @param string $db_host
+	 */
+	protected function setDbHost($db_host)
+	{
+		$this->db_host = $db_host;
 	}
 	
 }

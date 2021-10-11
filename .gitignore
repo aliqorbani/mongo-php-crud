@@ -1,6 +1,1 @@
-/_composer.json
-/_vendor/
-/.idea
-/config.php
-/i.php
-/mongo.php
+/vendor/
